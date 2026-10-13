@@ -1,0 +1,17 @@
+# Render Blueprint: deploys OPTIMUS as a public demo.
+services:
+  - type: web
+    name: optimus-helpdesk
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn "optimus.web:create_app()" --bind 0.0.0.0:$PORT --workers 1 --threads 4
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: OPTIMUS_DEMO          # seeds demo accounts + sample tickets, shows logins on the sign-in page
+        value: "1"
+      - key: OPTIMUS_DB            # free tier disk is temporary, so the demo data resets on restart
+        value: /tmp/optimus.db
+      - key: OPTIMUS_SECRET_KEY    # signs login sessions; Render generates a random one
+        generateValue: true

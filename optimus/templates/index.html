@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OPTIMUS · IT Helpdesk</title>
+  <style>
+    :root {
+      --bg: #f4f6fb; --card: #ffffff; --text: #1c2333; --muted: #6b7489;
+      --border: #e3e7f0; --brand: #2f5bea; --brand-dark: #2447bd;
+      --critical: #d92d4a; --high: #e8730c; --medium: #c9a100; --low: #2e9d5b;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+           background: var(--bg); color: var(--text); }
+    header { background: var(--brand); color: #fff; padding: 18px 24px; display: flex;
+             justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    header h1 { margin: 0; font-size: 1.3rem; letter-spacing: .5px; }
+    header span { opacity: .85; font-size: .9rem; }
+    main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .stat .num { font-size: 1.8rem; font-weight: 700; }
+    .stat .label { color: var(--muted); font-size: .85rem; }
+    h2 { font-size: 1.05rem; margin: 0 0 12px; }
+    form.new { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; align-items: end; }
+    form.new .wide { grid-column: 1 / -1; }
+    label { font-size: .8rem; color: var(--muted); display: block; margin-bottom: 4px; }
+    input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+      border-radius: 6px; font: inherit; background: #fff; }
+    textarea { resize: vertical; min-height: 60px; }
+    button { background: var(--brand); color: #fff; border: 0; border-radius: 6px; padding: 9px 16px;
+             font: inherit; cursor: pointer; }
+    button:hover { background: var(--brand-dark); }
+    button.secondary { background: #fff; color: var(--brand); border: 1px solid var(--brand); }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 12px; }
+    .toolbar > div { min-width: 140px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; }
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 99px; color: #fff; font-size: .75rem; font-weight: 600; }
+    .badge.critical { background: var(--critical); } .badge.high { background: var(--high); }
+    .badge.medium { background: var(--medium); } .badge.low { background: var(--low); }
+    td small { color: var(--muted); display: block; }
+    td select { padding: 4px 6px; }
+    .assign { display: flex; gap: 4px; }
+    .assign input { width: 100px; padding: 4px 6px; }
+    .assign button { padding: 4px 9px; font-size: .8rem; }
+    #msg { min-height: 22px; margin-bottom: 10px; font-size: .9rem; }
+    #msg.error { color: var(--critical); } #msg.ok { color: var(--low); }
+    .empty { text-align: center; color: var(--muted); padding: 24px; }
+    .who { display: flex; gap: 12px; align-items: center; font-size: .92rem; }
+    button.light { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.7); padding: 5px 12px; }
+    button.light:hover { background: rgba(255,255,255,.18); }
+    button.danger { background: #fff; color: var(--critical); border: 1px solid var(--critical); padding: 4px 10px; font-size: .8rem; }
+    button.danger:hover { background: var(--critical); color: #fff; }
+    button:disabled { opacity: .5; cursor: default; }
+    #demoBanner { background: #fff8e1; border-color: #f0d98a; font-size: .88rem; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🛠 OPTIMUS · IT Helpdesk</h1>
+    <div class="who"><span id="who"></span><button type="button" id="logout" class="light">Log out</button></div>
+  </header>
+
+  <main>
+    <div class="card" id="demoBanner" hidden>Demo mode: this is sample data and it resets when the server restarts.</div>
+    <section class="cards" id="stats"></section>
+    <div id="msg"></div>
+
+    <section class="card" style="margin-bottom:20px">
+      <h2>New ticket</h2>
+      <form class="new" id="newForm">
+        <div><label for="title">Title *</label><input id="title" required maxlength="120" placeholder="e.g. Cannot connect to WiFi"></div>
+        <div><label for="requester">Reported by *</label><input id="requester" required maxlength="60" placeholder="e.g. Ama"></div>
+        <div><label for="category">Category</label><select id="category"></select></div>
+        <div><label for="priority">Priority</label><select id="priority"></select></div>
+        <div class="wide"><label for="description">Description</label><textarea id="description" placeholder="What is happening?"></textarea></div>
+        <div><button type="submit">Create ticket</button></div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Tickets</h2>
+      <div class="toolbar">
+        <div><label for="fStatus">Status</label><select id="fStatus"></select></div>
+        <div><label for="fPriority">Priority</label><select id="fPriority"></select></div>
+        <div><label for="fCategory">Category</label><select id="fCategory"></select></div>
+        <a href="/api/export.csv" id="exportLink" hidden><button type="button" class="secondary">⬇ Export CSV</button></a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Priority</th><th>Ticket</th><th>Category</th><th>Status</th><th>Assignee</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" id="usersPanel" hidden style="margin-top:20px">
+      <h2>Team accounts</h2>
+      <form class="new" id="userForm" style="margin-bottom:14px">
+        <div><label for="uName">Username</label><input id="uName" required minlength="3" maxlength="30" autocomplete="off"></div>
+        <div><label for="uPass">Password (min 8 characters)</label><input id="uPass" type="password" required minlength="8" autocomplete="new-password"></div>
+        <div><label for="uRole">Role</label><select id="uRole"></select></div>
+        <div><button type="submit">Add user</button></div>
+      </form>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Username</th><th>Role</th><th>Created</th><th></th></tr></thead>
+          <tbody id="userRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STATUSES = {{ statuses | tojson }};
+    const PRIORITIES = {{ priorities | tojson }};
+    const CATEGORIES = {{ categories | tojson }};
+    const ROLES = {{ roles | tojson }};
+    let ME = null;
+    let USERNAMES = [];
+
+    const $ = (id) => document.getElementById(id);
+    const label = (s) => s.replace("_", " ");
+
+    function fillSelect(el, values, withAll, selected) {
+      el.textContent = "";
+      if (withAll) el.appendChild(new Option("All", ""));
+      values.forEach((v) => el.appendChild(new Option(label(v), v)));
+      if (selected) el.value = selected;
+    }
+
+    function show(text, kind) {
+      const m = $("msg");
+      m.textContent = text;
+      m.className = kind || "";
+      if (text) setTimeout(() => { m.textContent = ""; m.className = ""; }, 4000);
+    }
+
+    async function api(url, options) {
+      const res = await fetch(url, options);
+      if (res.status === 401) { window.location = "/login"; throw new Error("Please log in."); }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      return data;
+    }
+
+    function el(tag, props, ...children) {
+      const node = document.createElement(tag);
+      Object.assign(node, props || {});
+      children.forEach((c) => node.append(c));
+      return node;
+    }
+
+    async function loadStats() {
+      const s = await api("/api/stats");
+      const items = [
+        ["Total", s.total],
+        ["Open", s.by_status.open],
+        ["In progress", s.by_status.in_progress],
+        ["Resolved", s.by_status.resolved + s.by_status.closed],
+        ["Critical", s.by_priority.critical],
+        ["Avg fix time", s.avg_resolution_hours === null ? "n/a" : s.avg_resolution_hours + " h"],
+      ];
+      const box = $("stats");
+      box.textContent = "";
+      items.forEach(([name, value]) => {
+        box.appendChild(el("div", { className: "card stat" },
+          el("div", { className: "num", textContent: value }),
+          el("div", { className: "label", textContent: name })));
+      });
+    }
+
+    async function loadTickets() {
+      const params = new URLSearchParams({
+        status: $("fStatus").value, priority: $("fPriority").value, category: $("fCategory").value,
+      });
+      const tickets = await api("/api/tickets?" + params);
+      const body = $("rows");
+      body.textContent = "";
+      if (!tickets.length) {
+        const td = el("td", { colSpan: 6, className: "empty", textContent: "No tickets found." });
+        body.appendChild(el("tr", {}, td));
+        return;
+      }
+      tickets.forEach((t) => {
+        const statusSel = el("select");
+        fillSelect(statusSel, STATUSES, false, t.status);
+        statusSel.addEventListener("change", () => update(t.id, { status: statusSel.value }));
+
+        const titleCell = el("td", {}, el("strong", { textContent: t.title }));
+        if (t.description) titleCell.appendChild(el("small", { textContent: t.description }));
+        titleCell.appendChild(el("small", { textContent: "Reported by " + t.requester + " · " + t.created_at.replace("T", " ").slice(0, 16) + " UTC" }));
+
+        body.appendChild(el("tr", {},
+          el("td", { textContent: t.id }),
+          el("td", {}, el("span", { className: "badge " + t.priority, textContent: t.priority })),
+          titleCell,
+          el("td", { textContent: t.category }),
+          el("td", {}, statusSel),
+          assignCell(t)));
+      });
+    }
+
+    function assignCell(t) {
+      if (ME.role === "admin") {
+        const sel = el("select");
+        const placeholder = new Option("Unassigned", "");
+        placeholder.disabled = true;
+        sel.appendChild(placeholder);
+        const names = USERNAMES.slice();
+        if (t.assignee && !names.includes(t.assignee)) names.push(t.assignee);
+        names.forEach((n) => sel.appendChild(new Option(n, n)));
+        sel.value = t.assignee || "";
+        sel.addEventListener("change", () => update(t.id, { assignee: sel.value }));
+        return el("td", {}, sel);
+      }
+      const mine = !!t.assignee && t.assignee.toLowerCase() === ME.username.toLowerCase();
+      const btn = el("button", { type: "button", textContent: mine ? "Assigned to you" : "Assign to me", disabled: mine });
+      btn.addEventListener("click", () => update(t.id, { assignee: ME.username }));
+      const cell = el("td", {});
+      if (t.assignee && !mine) cell.appendChild(el("div", { textContent: t.assignee }));
+      cell.appendChild(btn);
+      return cell;
+    }
+
+    async function loadUsers() {
+      const list = await api("/api/users");
+      USERNAMES = list.map((u) => u.username);
+      const body = $("userRows");
+      body.textContent = "";
+      list.forEach((u) => {
+        const del = el("button", { type: "button", className: "danger", textContent: "Delete", disabled: u.id === ME.id });
+        del.addEventListener("click", async () => {
+          if (!confirm("Delete user " + u.username + "?")) return;
+          try { await api("/api/users/" + u.id, { method: "DELETE" }); show("User deleted", "ok"); }
+          catch (e) { show(e.message, "error"); }
+          refresh();
+        });
+        body.appendChild(el("tr", {},
+          el("td", { textContent: u.username }),
+          el("td", { textContent: u.role }),
+          el("td", { textContent: u.created_at.replace("T", " ").slice(0, 10) }),
+          el("td", {}, del)));
+      });
+    }
+
+    async function refresh() {
+      try {
+        if (ME.role === "admin") await loadUsers();
+        await Promise.all([loadStats(), loadTickets()]);
+      } catch (e) { show(e.message, "error"); }
+    }
+
+    async function init() {
+      try { ME = await api("/api/me"); } catch (e) { return; }
+      $("who").textContent = ME.username + " · " + ME.role;
+      $("demoBanner").hidden = !ME.demo;
+      if (ME.role === "admin") {
+        $("exportLink").hidden = false;
+        $("usersPanel").hidden = false;
+        fillSelect($("uRole"), ROLES, false, "technician");
+      }
+      refresh();
+    }
+
+    $("logout").addEventListener("click", async () => {
+      try { await fetch("/api/logout", { method: "POST" }); } catch (e) {}
+      window.location = "/login";
+    });
+
+    $("userForm").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      try {
+        const u = await api("/api/users", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: $("uName").value, password: $("uPass").value, role: $("uRole").value }),
+        });
+        show("Created user " + u.username, "ok");
+        ev.target.reset();
+        $("uRole").value = "technician";
+        refresh();
+      } catch (e) { show(e.message, "error"); }
+    });
+
+    async function update(id, changes) {
+      try {
+        await api("/api/tickets/" + id, {
+          method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(changes),
+        });
+        show("Ticket #" + id + " updated", "ok");
+      } catch (e) { show(e.message, "error"); }
+      refresh();
+    }
+
+    $("newForm").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      try {
+        const t = await api("/api/tickets", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: $("title").value, requester: $("requester").value, category: $("category").value,
+            priority: $("priority").value, description: $("description").value,
+          }),
+        });
+        show("Created ticket #" + t.id, "ok");
+        ev.target.reset();
+        $("category").value = "other"; $("priority").value = "medium";
+        refresh();
+      } catch (e) { show(e.message, "error"); }
+    });
+
+    fillSelect($("category"), CATEGORIES, false, "other");
+    fillSelect($("priority"), PRIORITIES, false, "medium");
+    fillSelect($("fStatus"), STATUSES, true);
+    fillSelect($("fPriority"), PRIORITIES, true);
+    fillSelect($("fCategory"), CATEGORIES, true);
+    ["fStatus", "fPriority", "fCategory"].forEach((id) => $(id).addEventListener("change", loadTickets));
+    init();
+  </script>
+</body>
+</html>
